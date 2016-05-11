@@ -50,7 +50,7 @@ parser.add_argument('--time', '-t',
 parser.add_argument('--maxq',
                     type=int,
                     help="Max buffer size of network interface in packets",
-                    default=15)
+                    default=9)
 
 # Linux uses CUBIC-TCP by default that doesn't have the usual sawtooth
 # behaviour.  For those who are curious, invoke this script with
@@ -66,18 +66,20 @@ args = parser.parse_args()
 class BBTopo(Topo):
     "Simple topology for bufferbloat experiment."
 
-    def build(self, n=2):
+    def build(self, n=4):
         h1 = self.addHost('h1')
         h2 = self.addHost('h2')
         h3 = self.addHost('h3')
 
         # Here I have created a switch.  If you change its name, its
         # interface names will change from s0-eth1 to newname-eth1.
-        switch = self.addSwitch('s0')
+        s0 = self.addSwitch('s0')
+        s1 = self.addSwitch('s1')
 
-        self.addLink(h1, switch, bw=args.bw_host)
-        self.addLink(switch, h2, bw=args.bw_net, delay=str(float(args.delay)/2)+'ms', max_queue_size=args.maxq)
-        self.addLink(h3, switch, bw=args.bw_host)
+        self.addLink(h1, s0, bw=args.bw_host)
+        self.addLink(s0, s1, bw=args.bw_net, delay=str(float(args.delay)/2)+'ms', max_queue_size=args.maxq)
+        self.addLink(h3, s0, bw=args.bw_host)
+        self.addLink(h2, s1, bw=args.bw_host)
         return
 
 # Simple wrappers around monitoring utilities.  You are welcome to
@@ -98,12 +100,15 @@ def start_qmon(iface, interval_sec=0.1, outfile="q.txt"):
     return monitor
 
 def start_iperf(net):
+    h1 = net.get('h1')
     h2 = net.get('h2')
     #print "Starting iperf server..."
     # For those who are curious about the -w 16m parameter, it ensures
     # that the TCP flow is not receiver window limited.  If it is,
     # there is a chance that the router buffer may not get filled up.
-    server = h2.popen("iperf -s -p %s -w 16m" % (5001), shell=True)
+    server = h2.popen("iperf3 -s -p %s > server.txt" % (5001), shell=True)
+    h2.popen("iperf3 -s -p 5002", shell=True)
+    h1.popen("iperf3 -c %s -p 5001 -t 30 > 1.txt" % (h2.IP()), shell=True)
 
 def start_ping(net):
     # Hint: Use host.popen(cmd, shell=True).  If you pass shell=True
@@ -118,12 +123,13 @@ def start_attack(net):
     h3 = net.get('h3')
     h2 = net.get('h2')
 
-    h3.popen("python attacker.py -T %s -P %s -B 150" % (h2.IP(), 5001), shell=True)
+    h3.popen("python attacker.py -T %s -P %s" % (h2.IP(), 5002), shell=True)
 
 def bufferbloat():
     if not os.path.exists(args.dir):
         os.makedirs(args.dir)
     os.system("sysctl -w net.ipv4.tcp_congestion_control=%s" % args.cong)
+    os.system("sysctl -w net.ipv4.tcp_frto=0")
     topo = BBTopo()
     net = Mininet(topo=topo, host=CPULimitedHost, link=TCLink)
     net.start()
@@ -136,13 +142,13 @@ def bufferbloat():
     qmon = start_qmon(iface='s0-eth2',
                       outfile='%s/q.txt' % (args.dir))
     h1 = net.get('h1')
-    h1.popen("ip route change 10.0.0.0/8 dev h1-eth0 rto_min 1100 scope link src 10.0.0.1 proto kernel", shell = True)
+    h1.popen("ip route change 10.0.0.0/8 dev h1-eth0 rto_min 1000 scope link src 10.0.0.1 proto kernel", shell = True)
 
     start_iperf(net)
+    #start_ping(net)
     start_attack(net)
 
-    h2 = net.get('h2')
-    h1.cmd("iperf -c %s -t 300 > 1.txt" % (h2.IP()), shell=True)
+    sleep(50)
     qmon.terminate()
     net.stop()
 

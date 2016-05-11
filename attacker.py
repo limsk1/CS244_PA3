@@ -17,12 +17,12 @@ parser.add_argument('--port', '-P',
 parser.add_argument('--blen', '-B',
                     type=int,
                     help="Burst lenght in ms",
-                    default = 100)
+                    default = 130)
 
 parser.add_argument('--plen', '-L',
                     type=int,
                     help="Length of one period",
-                    default = 1000)
+                    default = 1100)
 
 # Expt parameters
 args = parser.parse_args()
