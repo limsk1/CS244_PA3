@@ -105,13 +105,13 @@ def start_iperf(net):
     # For those who are curious about the -w 16m parameter, it ensures
     # that the TCP flow is not receiver window limited.  If it is,
     # there is a chance that the router buffer may not get filled up.
-    server.popen("iperf3 -s -p 5001 > server.txt", shell=True)
-    server.popen("iperf3 -s -p 5002", shell=True)
+    server.popen("iperf3 -s -p 5000 > server.txt", shell=True)
 
     global iperf_subproc
     for i in range(0, num_hosts):
         h = net.get('h{}'.format(i))
-        p = h.popen("iperf3 -c {} -p 5001 -t {} > h{}.txt".format(server.IP(), args.time, i), shell=True)
+        server.popen("iperf3 -s -p {}".format(5001 + i), shell=True)
+        p = h.popen("iperf3 -c {} -i 0 -f m -p {} -t {} > h{}.txt".format(server.IP(), 5001 + i, args.time, i), shell=True)
         iperf_subproc.append(p)
 
 #ping = h1.popen("ping %s -i 0.1 > %s/%s" %(h2.IP(), args.dir, "ping.txt") , shell=True)
@@ -125,7 +125,7 @@ def start_attack(net):
     attacker = net.get('attacker')
     server = net.get('server')
 
-    attacker.popen("python attacker.py -T %s -P %s" % (server.IP(), 5002), shell=True)
+    attacker.popen("python attacker.py -T %s -P %s" % (server.IP(), 5000), shell=True)
 
 def simulateAttack():
     if not os.path.exists(args.dir):
@@ -148,15 +148,15 @@ def simulateAttack():
     # This performs a basic all pairs ping test.
     net.pingAll()
 
-    qmon = start_qmon(iface='s1-eth2',
+    qmon = start_qmon(iface='s0-eth1',
                       outfile='%s/q.txt' % (args.dir))
 
     configure_rto(net)
     start_iperf(net)
     start_attack(net)
 
-    sleep(args.time)
-
+    #sleep(args.time)
+    CLI(net)
     done = False
     while not done:
        done = True
