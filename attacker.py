@@ -4,10 +4,11 @@ from argparse import ArgumentParser
 import sys
 import os
 
-parser = ArgumentParser(description="Bufferbloat tests")
+parser = ArgumentParser(description="Create attack stream")
+
 parser.add_argument('--target', '-T',
                     help="IP of target",
-                    required=True)
+                    required = True)
 
 parser.add_argument('--port', '-P',
                     type=int,
