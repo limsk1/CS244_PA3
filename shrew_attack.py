@@ -116,10 +116,24 @@ def start_iperf(net):
 
 #ping = h1.popen("ping %s -i 0.1 > %s/%s" %(h2.IP(), args.dir, "ping.txt") , shell=True)
 
-def configure_rto(net): 
+def configure_rto(net):
+    rto_config = []
+    server = net.get('server')
+    p = server.popen("ip route change 10.0.0.0/8 dev server-eth0 rto_min 1000 scope link src {} proto kernel".format(server.IP()), shell = True)
+    rto_config.append(p)
     for i in range(0, num_hosts):
         h = net.get('h{}'.format(str(i)))
-        h.popen("ip route change 10.0.0.0/8 dev h{}-eth0 rto_min 1000 scope link src {} proto kernel".format(i, h.IP()), shell = True)
+        p = h.popen("ip route change 10.0.0.0/8 dev h{}-eth0 rto_min 1000 scope link src {} proto kernel".format(i, h.IP()), shell = True)
+        rto_config.append(p)
+
+    done = False
+    while not done:
+       done = True
+       for p in rto_config:
+           if p.poll() is None:
+               done = False
+               break
+
 
 def start_attack(net):
     attacker = net.get('attacker')
@@ -153,10 +167,10 @@ def simulateAttack():
 
     configure_rto(net)
     start_iperf(net)
+    sleep(1)
     start_attack(net)
 
-    #sleep(args.time)
-    CLI(net)
+    sleep(args.time)
     done = False
     while not done:
        done = True
