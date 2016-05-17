@@ -1,26 +1,22 @@
 #!/bin/bash
 
-# Note: Mininet must be run as root.  So invoke this shell script
-# using sudo.
+config_file='5-1_config'
+bwhost=1000
+bwbottle=1.5
+time=30
+blen=100
 
-time=200
-bwnet=1.5
-# TODO: If you want the RTT to be 20ms what should the delay on each
-# link be?  Set this value correctly.
-delay=20
+rootdir='5-1'
+rm -rf $rootdir
+#for plen in 400 500 600 700 800 900 1000 1100 1200 1300 1400 1500 1600 1700 1800 1900 2000 3000 4000 5000; do
+for plen in 400 500 700 1000 1250 1500 2000 3000 4000; do
+    dir=p-$plen
 
-iperf_port=5001
-
-for qsize in 20 100; do
-    dir=bb-q$qsize
-
-    # TODO: Run bufferbloat.py here...
-    python bufferbloat.py --bw-net $bwnet --delay $delay --dir $dir --maxq $qsize --time $time
-
-    # TODO: Ensure the input file names match the ones you use in
-    # bufferbloat.py script.  Also ensure the plot file names match
-    # the required naming convention when submitting your tarball.
-    python plot_tcpprobe.py -f $dir/cwnd.txt -o $dir/cwnd-iperf.png -p $iperf_port
-    python plot_queue.py -f $dir/q.txt -o $dir/q.png
-    python plot_ping.py -f $dir/ping.txt -o $dir/rtt.png
+    for i in 1 2 3 4 5; do
+        subdir=t-$i
+        python shrew_attack.py -f $config_file -B $bwhost -b $bwbottle -d $rootdir/$dir/$subdir -t $time --blen $blen --plen $plen
+        mn -c
+    done
 done
+
+python plot_figure_5_1.py -d $rootdir 

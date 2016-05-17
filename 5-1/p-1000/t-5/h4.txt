@@ -1,0 +1,10 @@
+Connecting to host 10.0.0.7, port 5005
+[ 26] local 10.0.0.6 port 39759 connected to 10.0.0.7 port 5005
+[ ID] Interval           Transfer     Bandwidth       Retr  Cwnd
+[ 26]   0.00-30.00  sec  1.07 MBytes  0.30 Mbits/sec  112   9.90 KBytes       
+- - - - - - - - - - - - - - - - - - - - - - - - -
+[ ID] Interval           Transfer     Bandwidth       Retr
+[ 26]   0.00-30.00  sec  1.07 MBytes  0.30 Mbits/sec  112             sender
+[ 26]   0.00-30.00  sec  1.02 MBytes  0.29 Mbits/sec                  receiver
+
+iperf Done.

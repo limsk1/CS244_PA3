@@ -1,0 +1,10 @@
+Connecting to host 10.0.0.7, port 5004
+[ 26] local 10.0.0.5 port 45946 connected to 10.0.0.7 port 5004
+[ ID] Interval           Transfer     Bandwidth       Retr  Cwnd
+[ 26]   0.00-30.00  sec   368 KBytes  0.10 Mbits/sec   78   5.66 KBytes       
+- - - - - - - - - - - - - - - - - - - - - - - - -
+[ ID] Interval           Transfer     Bandwidth       Retr
+[ 26]   0.00-30.00  sec   368 KBytes  0.10 Mbits/sec   78             sender
+[ 26]   0.00-30.00  sec   322 KBytes  0.09 Mbits/sec                  receiver
+
+iperf Done.

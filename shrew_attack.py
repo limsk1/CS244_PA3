@@ -51,6 +51,16 @@ parser.add_argument('--maxq',
                     help="Max buffer size of network interface in packets",
                     default=9)
 
+parser.add_argument('--blen',
+                    type=int,
+                    help="Burst length in ms",
+                    default = 100)
+
+parser.add_argument('--plen',
+                   type=int,
+                   help="Length of one period",
+                   default = 1000)
+
 # Expt parameters
 args = parser.parse_args()
 num_hosts = 0
@@ -102,16 +112,14 @@ def start_qmon(iface, interval_sec=0.1, outfile="q.txt"):
 def start_iperf(net):
     server = net.get('server')
     print "Starting iperf server..."
-    # For those who are curious about the -w 16m parameter, it ensures
-    # that the TCP flow is not receiver window limited.  If it is,
-    # there is a chance that the router buffer may not get filled up.
-    server.popen("iperf3 -s -p 5000 > server.txt", shell=True)
+    server.popen("iperf3 -s -p 5000", shell=True)
 
     global iperf_subproc
     for i in range(0, num_hosts):
         h = net.get('h{}'.format(i))
         server.popen("iperf3 -s -p {}".format(5001 + i), shell=True)
-        p = h.popen("iperf3 -c {} -i 0 -f m -p {} -t {} > h{}.txt".format(server.IP(), 5001 + i, args.time, i), shell=True)
+        sleep(1)
+        p = h.popen("iperf3 -c {} -i 0 -f m -p {} -t {} > {}/h{}.txt".format(server.IP(), 5001 + i, args.time, args.dir, i), shell=True)
         iperf_subproc.append(p)
 
 #ping = h1.popen("ping %s -i 0.1 > %s/%s" %(h2.IP(), args.dir, "ping.txt") , shell=True)
@@ -139,7 +147,7 @@ def start_attack(net):
     attacker = net.get('attacker')
     server = net.get('server')
 
-    attacker.popen("python attacker.py -T %s -P %s" % (server.IP(), 5000), shell=True)
+    attacker.popen("python attacker.py -T %s -P %s -B %s -L %s" % (server.IP(), 5000, args.blen, args.plen), shell=True)
 
 def simulateAttack():
     if not os.path.exists(args.dir):
@@ -162,8 +170,6 @@ def simulateAttack():
     # This performs a basic all pairs ping test.
     net.pingAll()
 
-    qmon = start_qmon(iface='s0-eth1',
-                      outfile='%s/q.txt' % (args.dir))
 
     configure_rto(net)
     start_iperf(net)
@@ -179,7 +185,6 @@ def simulateAttack():
                done = False
                break
 
-    qmon.terminate()
     net.stop()
 
 if __name__ == "__main__":

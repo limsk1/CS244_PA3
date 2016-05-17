@@ -17,7 +17,7 @@ parser.add_argument('--port', '-P',
 
 parser.add_argument('--blen', '-B',
                     type=int,
-                    help="Burst lenght in ms",
+                    help="Burst length in ms",
                     default = 130)
 
 parser.add_argument('--plen', '-L',
