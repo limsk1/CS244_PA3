@@ -22,15 +22,12 @@ for d in dirs:
     testd = [f for f in os.listdir(os.path.join(args.dir, d))]
     aggregated = 0.0
     for test in testd:
-        iperf_results = [f for f in os.listdir(os.path.join(args.dir, d, test)) if f.endswith('.txt')]
-        for result in iperf_results:
-            file_path = os.path.join(args.dir, d, test, result)
-            with open(file_path, 'r') as iperf_result:
-                line = iperf_result.readlines()[-4]
-                bwtok = line.split()[6]
-                aggregated += float(bwtok)
+        file_path = os.path.join(args.dir, d, test, "result.txt")
+        with open(file_path, 'r') as result_file:
+            aggregated += float(result_file.readlines()[1].strip())
 
-    aggregated /= 5
+    aggregated /= len(testd)
+    aggregated /= 1.5
     data.append([plen, aggregated])
 
 m.rc('figure')
@@ -46,7 +43,8 @@ xaxis = map(float, col(0, data_sort))
 yaxis = map(float, col(1, data_sort))
 
 ax.plot(xaxis, yaxis, lw=2)
-plt.ylabel("Aggregated Bandwidth (Mb/s)")
+plt.ylabel("Aggregated Normalized Bandwidth")
+plt.xlabel("Inter-burst DoS Period(ms)")
 plt.grid(True)
 
 plt.savefig("5-1.png")

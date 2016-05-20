@@ -20,6 +20,7 @@ from helper import avg, stdev
 import sys
 import os
 import math
+import re 
 
 parser = ArgumentParser(description="Low-rate DoS tests")
 
@@ -64,21 +65,20 @@ parser.add_argument('--plen',
 # Expt parameters
 args = parser.parse_args()
 num_hosts = 0
-iperf_subproc = []
 
 class AttackTopo(Topo):
     "Simple topology for low-rate DoS experiment."
 
-    def build(self):
-        server = self.addHost('server')
+    def build(self): 
         attacker = self.addHost('attacker')
+        aServer = self.addHost('aServer')
 
         s0 = self.addSwitch('s0')
         s1 = self.addSwitch('s1')
 
-        self.addLink(s0, s1, bw=args.bw_bottle, max_queue_size=args.maxq)
-        self.addLink(attacker, s0, bw=args.bw_host)
-        self.addLink(server, s1, bw=args.bw_host)
+        self.addLink(s0, s1, bw=args.bw_bottle, max_queue_size=args.maxq, delay = '2ms')
+        self.addLink(attacker, s0, bw=args.bw_host, delay = '2ms') 
+        self.addLink(aServer, s1, bw=args.bw_host, delay = '2ms')
 
         config_file = open(args.config_file, 'r')
         global num_hosts
@@ -95,9 +95,11 @@ class AttackTopo(Topo):
 
         for i in range(0, num_hosts):
             try:
-                h = self.addHost('h{}'.format(i))
+                hC = self.addHost('hC{}'.format(i))
+                hS = self.addHost('hS{}'.format(i))
                 delay = int(rtt_list[i])
-                self.addLink(h, s0, bw=args.bw_host, delay = str(delay) + 'ms')
+                self.addLink(hC, s0, bw=args.bw_host, delay = str(delay - 4) + 'ms')
+                self.addLink(hS, s1, bw=args.bw_host, delay = '2ms')
             except:
                 print "Wrong configuration file"
                 sys.exit(1) 
@@ -109,30 +111,35 @@ def start_qmon(iface, interval_sec=0.1, outfile="q.txt"):
     monitor.start()
     return monitor
 
-def start_iperf(net):
-    server = net.get('server')
-    print "Starting iperf server..."
-    server.popen("iperf3 -s -p 5000", shell=True)
+client_stream = []
 
-    global iperf_subproc
+def start_iperf(net):
+    aServer = net.get('aServer')
+    print "Starting iperf server..."
+    aServer.popen("iperf3 -s -p 5001", shell=True)
+    
+    global client_stream
     for i in range(0, num_hosts):
-        h = net.get('h{}'.format(i))
-        server.popen("iperf3 -s -p {}".format(5001 + i), shell=True)
+        hC = net.get('hC{}'.format(i))
+        hS = net.get('hS{}'.format(i))
+        hS.popen("iperf3 -s -p 5001 --logfile {}/{}.txt".format(args.dir, i), shell=True)
         sleep(1)
-        p = h.popen("iperf3 -c {} -i 0 -f m -p {} -t {} > {}/h{}.txt".format(server.IP(), 5001 + i, args.time, args.dir, i), shell=True)
-        iperf_subproc.append(p)
+        p = hC.popen("iperf3 -c {} -d -i 0 -f m -p {} -t {}".format(hS.IP(), 5001, args.time), shell=True)
 
 #ping = h1.popen("ping %s -i 0.1 > %s/%s" %(h2.IP(), args.dir, "ping.txt") , shell=True)
 
+def stop_iperf(net):
+    os.system("killall -9 iperf3")
+
 def configure_rto(net):
     rto_config = []
-    server = net.get('server')
-    p = server.popen("ip route change 10.0.0.0/8 dev server-eth0 rto_min 1000 scope link src {} proto kernel".format(server.IP()), shell = True)
-    rto_config.append(p)
     for i in range(0, num_hosts):
-        h = net.get('h{}'.format(str(i)))
-        p = h.popen("ip route change 10.0.0.0/8 dev h{}-eth0 rto_min 1000 scope link src {} proto kernel".format(i, h.IP()), shell = True)
+        hC = net.get('hC{}'.format(str(i)))
+        p = hC.popen("ip route change 10.0.0.0/8 dev hC{}-eth0 rto_min 900 scope link src {} proto kernel".format(i, hC.IP()), shell = True)
         rto_config.append(p)
+        hS = net.get('hS{}'.format(str(i)))
+        pS = hS.popen("ip route change 10.0.0.0/8 dev hS{}-eth0 rto_min 900 scope link src {} proto kernel".format(i, hS.IP()), shell = True)
+        rto_config.append(pS)
 
     done = False
     while not done:
@@ -145,9 +152,28 @@ def configure_rto(net):
 
 def start_attack(net):
     attacker = net.get('attacker')
-    server = net.get('server')
+    aServer = net.get('aServer')
 
-    attacker.popen("python attacker.py -T %s -P %s -B %s -L %s" % (server.IP(), 5000, args.blen, args.plen), shell=True)
+    attacker.popen("python attacker.py -T %s -P %s -B %s -L %s" % (aServer.IP(), 5000, args.blen, args.plen), shell=True)
+
+
+def get_byte_data():
+    f = open('/proc/net/dev', 'r')
+    lines = f.readlines()[2:]
+    data = map(lambda x: x.split(':'), lines)
+    data = map(lambda x: (x[0], float(x[1].split()[8])), data)
+    return dict(data)
+
+def calculate_byte_data(init, final, time):
+    data = {}
+    sum_tp = 0.0
+    for k in init.keys():
+        if re.match('s1-eth([3-9]|[1-9][0-9]+)', k) is None: continue
+        data[k] = (final[k] - init[k]) * 8 / 1000000 / time
+        sum_tp += data[k]
+    data = sorted(data.items())
+    f = open('{}/result.txt'.format(args.dir), 'w')
+    f.write(str(data) + "\n" + str(sum_tp))
 
 def simulateAttack():
     if not os.path.exists(args.dir):
@@ -172,19 +198,18 @@ def simulateAttack():
 
 
     configure_rto(net)
-    start_iperf(net)
-    sleep(1)
+    init_data = get_byte_data()
     start_attack(net)
-
+    start = time()
+    start_iperf(net)
+    print "All benign flows start!"
+    ping = net.get('hC0').popen("ping %s -i 0.1 > %s/%s" %(net.get('hS0').IP(), args.dir, "ping.txt") , shell=True)
     sleep(args.time)
-    done = False
-    while not done:
-       done = True
-       for p in iperf_subproc:
-           if p.poll() is None:
-               done = False
-               break
 
+    stop_iperf(net)
+    total_time = time() - start
+    final_data = get_byte_data()
+    calculate_byte_data(init_data, final_data, total_time)
     net.stop()
 
 if __name__ == "__main__":
