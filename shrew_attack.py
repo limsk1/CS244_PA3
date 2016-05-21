@@ -65,6 +65,7 @@ parser.add_argument('--plen',
 # Expt parameters
 args = parser.parse_args()
 num_hosts = 0
+rtt_list = []
 
 class AttackTopo(Topo):
     "Simple topology for low-rate DoS experiment."
@@ -88,6 +89,7 @@ class AttackTopo(Topo):
             print "Host configuration file should start with number of hosts"
             sys.exit(1)
 
+        global rtt_list
         rtt_list = config_file.readline().split(' ')
         if len(rtt_list) != num_hosts:
             print "Wrong number of hosts specified"
@@ -172,6 +174,7 @@ def calculate_byte_data(init, final, time):
         data[k] = (final[k] - init[k]) * 8 / 1000000 / time
         sum_tp += data[k]
     data = sorted(data.items())
+
     f = open('{}/result.txt'.format(args.dir), 'w')
     f.write(str(data) + "\n" + str(sum_tp))
 
