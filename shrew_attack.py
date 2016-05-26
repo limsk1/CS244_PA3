@@ -173,7 +173,12 @@ def calculate_byte_data(init, final, time):
         if re.match('s1-eth([3-9]|[1-9][0-9]+)', k) is None: continue
         data[k] = (final[k] - init[k]) * 8 / 1000000 / time
         sum_tp += data[k]
-    data = sorted(data.items())
+
+    def getKey(item):
+        eth_num = re.match('s1-eth([3-9]|[1-9][0-9]+)', item[0]).group(1)
+        return int(eth_num)
+
+    data = sorted(data.items(), key=getKey)
 
     f = open('{}/result.txt'.format(args.dir), 'w')
     f.write(str(data) + "\n" + str(sum_tp))
@@ -196,9 +201,6 @@ def simulateAttack():
     # This dumps the topology and how nodes are interconnected through
     # links.
     dumpNodeConnections(net.hosts)
-    # This performs a basic all pairs ping test.
-    net.pingAll()
-
 
     configure_rto(net)
     init_data = get_byte_data()
