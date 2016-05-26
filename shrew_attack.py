@@ -2,10 +2,12 @@
 
 from mininet.topo import Topo
 from mininet.node import CPULimitedHost
+from mininet.node import OVSController
 from mininet.link import TCLink
 from mininet.net import Mininet
 from mininet.log import lg, info
 from mininet.util import dumpNodeConnections
+from mininet.util import dumpNetConnections
 from mininet.cli import CLI
 
 from subprocess import Popen, PIPE
@@ -61,6 +63,8 @@ parser.add_argument('--plen',
                    type=int,
                    help="Length of one period",
                    default = 1000)
+
+parser.add_argument('--no-attacker', action='store_true', help='Deactivate attacker')
 
 # Expt parameters
 args = parser.parse_args()
@@ -196,15 +200,16 @@ def simulateAttack():
     os.system("sysctl -w net.ipv4.tcp_frto=0")
 
     topo = AttackTopo()
-    net = Mininet(topo=topo, host=CPULimitedHost, link=TCLink)
+    net = Mininet(topo=topo, host=CPULimitedHost, link=TCLink, controller=OVSController)
     net.start()
     # This dumps the topology and how nodes are interconnected through
     # links.
-    dumpNodeConnections(net.hosts)
+    dumpNetConnections(net)
 
     configure_rto(net)
     init_data = get_byte_data()
-    start_attack(net)
+    if not args.no_attacker:
+        start_attack(net)
     start = time()
     start_iperf(net)
     print "All benign flows start!"
