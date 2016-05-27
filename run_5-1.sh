@@ -4,7 +4,7 @@ config_file='5-1_config'
 bwhost=1000
 bwbottle=1.5
 time=100
-blen=200
+blen=100
 
 rootdir='5-1'
 rm -rf $rootdir
