@@ -7,6 +7,7 @@ import os, re, string
 import collections
 import ast
 import operator
+import numpy as np
 
 attackdir = '5-2-1'
 noattackdir = '5-2-1_2'
@@ -40,7 +41,13 @@ m.rc('figure')
 fig = figure()
 ax = fig.add_subplot(111)
 
+#anomaly = np.argmax(attack_throughput)
+#scale_factor = np.sum(attack_throughput)/(np.sum(attack_throughput) - np.max(attack_throughput))
+#print scale_factor
+#attack_throughput = np.array(attack_throughput)*scale_factor
+#attack_throughput[anomaly] = 0;
 
+#ax.plot(noattack_rtt, np.array(attack_throughput)/np.array(noattack_throughput))
 ax.plot(noattack_rtt, noattack_throughput, lw=2, label="no DOS")
 ax.plot(attack_rtt, attack_throughput, lw=2, label="DOS")
 plt.ylabel("Normalized Throughput")
@@ -50,3 +57,13 @@ plt.legend()
 plt.tight_layout()
 #plt.show()
 plt.savefig("5-2-1.png")
+fig = plt.figure()
+ax = fig.add_subplot(111)
+ax.plot(noattack_rtt, np.array(attack_throughput)/np.array(noattack_throughput))
+plt.ylabel("Dos/No Dos Throghput Ratio")
+plt.xlabel("RTT")
+plt.ylim([0,0.4])
+plt.grid(True)
+plt.legend()
+plt.tight_layout()
+plt.savefig("5-2-1_2.png")

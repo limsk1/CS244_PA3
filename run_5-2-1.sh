@@ -17,7 +17,7 @@ done
 rootdir2='5-2-1_2'
 for i in 1 2 3 4 5; do
     subdir=t-$i
-    python shrew_attack.py --no-attacker -f $config_file -B $bwhost -b $bwbottle -d $rootdir/$dir/$subdir -t $time --blen $blen --plen $plen
+    python shrew_attack.py --no-attacker -f $config_file -B $bwhost -b $bwbottle -d $rootdir2/$dir/$subdir -t $time --blen $blen --plen $plen
     mn -c
 done
 

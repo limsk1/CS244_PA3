@@ -207,6 +207,7 @@ def simulateAttack():
     configure_rto(net)
     init_data = get_byte_data()
     if not args.no_attacker:
+        print "Starting Attack"
         start_attack(net)
     start = time()
     start_iperf(net)
