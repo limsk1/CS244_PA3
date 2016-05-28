@@ -9,3 +9,4 @@ apt-get install --assume-yes libfreetype6-dev libxft-dev
 apt-get install --assume-yes python-dev python-pip
 pip install matplotlib
 pip install termcolor
+chmod 755 *.sh
