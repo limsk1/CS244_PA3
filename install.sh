@@ -1,4 +1,3 @@
-apt-get install --assume-yes git
 git clone git://github.com/mininet/mininet
 mininet/util/install.sh -a
 wget https://iperf.fr/download/ubuntu/libiperf0_3.1.2-1_amd64.deb
