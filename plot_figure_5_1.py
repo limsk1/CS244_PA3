@@ -46,5 +46,5 @@ ax.plot(xaxis, yaxis, lw=2)
 plt.ylabel("Aggregated Normalized Bandwidth")
 plt.xlabel("Inter-burst DoS Period(ms)")
 plt.grid(True)
-
-plt.savefig("5-1.png")
+plt.tight_layout()
+plt.savefig(args.dir + ".png")

@@ -46,5 +46,5 @@ ax.plot(xaxis, yaxis, lw=2)
 plt.ylabel("Throughput Normalized")
 plt.xlabel("Burst Length(ms)")
 plt.grid(True)
-
+plt.tight_layout()
 plt.savefig("5-2-2.png")

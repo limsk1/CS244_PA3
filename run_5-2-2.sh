@@ -17,5 +17,3 @@ for blen in 0 50 100 150 200; do
         mn -c
     done
 done
-
-python plot_figure_5_2_2.py -d $rootdir 

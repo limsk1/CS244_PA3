@@ -65,6 +65,7 @@ parser.add_argument('--plen',
                    default = 1000)
 
 parser.add_argument('--no-attacker', action='store_true', help='Deactivate attacker')
+parser.add_argument('--frto', action='store_true', help='Turn F-RTO back on')
 
 # Expt parameters
 args = parser.parse_args()
@@ -196,8 +197,12 @@ def simulateAttack():
     print "Use TCP Reno"
     os.system("sysctl -w net.ipv4.tcp_congestion_control=reno")
 
-    print "Disable F-RTO"
-    os.system("sysctl -w net.ipv4.tcp_frto=0")
+    if not args.frto:
+        print "Disable F-RTO"
+        os.system("sysctl -w net.ipv4.tcp_frto=0")
+    else:
+        print "Enable F-RTO"
+        os.system("sysctl -w net.ipv4.tcp_frto=2")
 
     topo = AttackTopo()
     net = Mininet(topo=topo, host=CPULimitedHost, link=TCLink, controller=OVSController)
